@@ -1,0 +1,19 @@
+.frame-text {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 1;
+    width: 60%;
+    padding: 10px 14px;
+    border: 0;
+    background: transparent;
+    text-align: center;
+    font-size: clamp(20px, 3vw, 42px);
+    color: #1f1a16;
+    outline: none;
+}
+
+.frame-image {
+    z-index: 2;
+}

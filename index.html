@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Frame Switcher</title>
+  <style>
+    :root {
+      --panel-bg: #fbfbf8;
+      --panel-border: #d9d3c7;
+      --ink: #1f1a16;
+      --muted: #6d655d;
+      --accent: #8f5a31;
+      --shadow: 0 20px 60px rgba(31, 26, 22, 0.08);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      margin: 0;
+      width: 100%;
+      min-height: 100%;
+      background: #fff;
+      color: var(--ink);
+      font-family: Georgia, "Times New Roman", serif;
+    }
+
+    body {
+      min-height: 100vh;
+      background-image:
+        radial-gradient(circle at top left, rgba(143, 90, 49, 0.08), transparent 26%),
+        linear-gradient(180deg, #ffffff 0%, #fffdf9 100%);
+    }
+
+    button,
+    textarea {
+      font: inherit;
+    }
+
+    .app {
+      width: min(1400px, calc(100vw - 24px));
+      min-height: 100vh;
+      margin: 0 auto;
+      padding: 12px 0;
+      display: grid;
+      grid-template-rows: auto 1fr;
+      gap: 12px;
+    }
+
+    .hero {
+      display: grid;
+      gap: 4px;
+      padding: 4px 6px 0;
+    }
+
+    .eyebrow {
+      margin: 0;
+      color: var(--accent);
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+    }
+
+    .hero h1,
+    .hero p {
+      margin: 0;
+    }
+
+    .hero h1 {
+      font-size: clamp(1.6rem, 3vw, 3rem);
+      line-height: 0.95;
+      font-weight: 700;
+    }
+
+    .hero p {
+      max-width: 62ch;
+      color: var(--muted);
+      font-size: 0.98rem;
+      line-height: 1.5;
+    }
+
+    .workspace {
+      min-height: 0;
+      display: grid;
+      grid-template-columns: minmax(0, 1.9fr) minmax(280px, 0.85fr);
+      gap: 16px;
+      align-items: stretch;
+    }
+
+    .panel {
+      background: var(--panel-bg);
+      border: 1px solid var(--panel-border);
+      border-radius: 28px;
+      box-shadow: var(--shadow);
+      min-height: 0;
+    }
+
+    .stage-panel {
+      padding: 16px;
+      display: grid;
+      grid-template-rows: minmax(0, 1fr) auto;
+      min-height: calc(100vh - 120px);
+    }
+
+    .stage {
+      position: relative;
+      width: 100%;
+      min-height: 0;
+      height: 100%;
+      border-radius: 24px;
+      overflow: hidden;
+      background:
+        linear-gradient(135deg, rgba(239, 225, 212, 0.75), rgba(255, 255, 255, 0.95)),
+        #ffffff;
+      border: 1px solid rgba(143, 90, 49, 0.12);
+      display: grid;
+      place-items: center;
+      isolation: isolate;
+    }
+
+    .stage::before {
+      content: "";
+      position: absolute;
+      inset: 22px;
+      border-radius: 18px;
+      background:
+        linear-gradient(145deg, rgba(255, 255, 255, 0.7), rgba(225, 217, 202, 0.85)),
+        repeating-linear-gradient(
+          45deg,
+          rgba(143, 90, 49, 0.035) 0,
+          rgba(143, 90, 49, 0.035) 12px,
+          rgba(255, 255, 255, 0.12) 12px,
+          rgba(255, 255, 255, 0.12) 24px
+        );
+      box-shadow: inset 0 0 0 1px rgba(143, 90, 49, 0.06);
+      z-index: 0;
+    }
+
+    .artwork {
+      position: absolute;
+      inset: 11%;
+      border-radius: 12px;
+      z-index: 1;
+      background:
+        radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.92), transparent 28%),
+        linear-gradient(135deg, #d1c3b0 0%, #a66b42 42%, #6d8f9f 100%);
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.35);
+      overflow: hidden;
+    }
+
+    .visually-hidden {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    .overlay-text {
+      position: absolute;
+      padding: 12px 14px;
+      border: 0;
+      resize: none;
+      overflow: hidden;
+      background: transparent;
+      color: #1f1a16;
+      outline: none;
+      z-index: 2;
+    }
+
+    .quote-text {
+      left: 38%;
+      top: 48%;
+      width: min(46%, 520px);
+      min-height: 132px;
+      text-align: left;
+      font: 700 clamp(24px, 3vw, 52px) / 1.08 Georgia, "Times New Roman", serif;
+      transform: translate(-50%, -50%);
+    }
+
+    .quote-author {
+      left: 70%;
+      top: 67%;
+      width: min(22%, 230px);
+      min-height: 58px;
+      text-align: right;
+      font: italic 600 clamp(16px, 1.5vw, 24px) / 1.2 Georgia, "Times New Roman", serif;
+      color: #4c4037;
+      transform: translate(-50%, -50%);
+    }
+
+    .frame-image {
+      position: relative;
+      z-index: 3;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      pointer-events: none;
+      filter: drop-shadow(0 18px 30px rgba(31, 26, 22, 0.18));
+    }
+
+    .controls {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding-top: 14px;
+    }
+
+    .controls-group {
+      display: flex;
+      gap: 10px;
+    }
+
+    .button {
+      border: 1px solid var(--panel-border);
+      background: #fff;
+      color: var(--ink);
+      border-radius: 999px;
+      padding: 10px 16px;
+      cursor: pointer;
+      transition: transform 160ms ease, border-color 160ms ease, background 160ms ease;
+    }
+
+    .button:hover {
+      transform: translateY(-1px);
+      border-color: var(--accent);
+      background: #fffdf9;
+    }
+
+    .status {
+      display: grid;
+      justify-items: end;
+      gap: 4px;
+      text-align: right;
+    }
+
+    .status strong {
+      font-size: 1rem;
+    }
+
+    .status span {
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+
+    .sidebar {
+      padding: 18px;
+      display: grid;
+      gap: 16px;
+      align-content: start;
+      overflow: auto;
+    }
+
+    .sidebar h2,
+    .sidebar p {
+      margin: 0;
+    }
+
+    .sidebar h2 {
+      font-size: 1.2rem;
+    }
+
+    .sidebar p {
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    .meta-card {
+      display: grid;
+      gap: 10px;
+      padding: 16px;
+      background: #fff;
+      border: 1px solid rgba(143, 90, 49, 0.12);
+      border-radius: 20px;
+    }
+
+    .meta-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .meta-grid div {
+      padding: 10px 12px;
+      background: #f7f2eb;
+      border-radius: 14px;
+    }
+
+    .meta-grid span {
+      display: block;
+      color: var(--muted);
+      font-size: 0.75rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .meta-grid strong {
+      display: block;
+      padding-top: 4px;
+      font-size: 1rem;
+    }
+
+    .thumb-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .thumb {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 1 / 1;
+      padding: 0;
+      border-radius: 18px;
+      border: 1px solid rgba(143, 90, 49, 0.12);
+      background: linear-gradient(180deg, #ffffff 0%, #f4ede4 100%);
+      cursor: pointer;
+      overflow: hidden;
+      transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
+    }
+
+    .thumb:hover {
+      transform: translateY(-2px);
+      border-color: rgba(143, 90, 49, 0.55);
+      box-shadow: 0 12px 24px rgba(31, 26, 22, 0.1);
+    }
+
+    .thumb.is-active {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px rgba(143, 90, 49, 0.15);
+    }
+
+    .thumb img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      padding: 10px;
+      pointer-events: none;
+    }
+
+    .thumb span {
+      position: absolute;
+      left: 10px;
+      right: 10px;
+      bottom: 8px;
+      padding: 6px 8px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.86);
+      color: #574b40;
+      font-size: 0.72rem;
+      text-align: center;
+    }
+
+    @media (max-width: 900px) {
+      .app {
+        width: min(100vw - 12px, 1400px);
+      }
+
+      .workspace {
+        grid-template-columns: 1fr;
+      }
+
+      .stage-panel {
+        min-height: 70vh;
+      }
+
+      .quote-text {
+        left: 42%;
+        top: 44%;
+        width: min(56%, 520px);
+      }
+
+      .quote-author {
+        left: 63%;
+        top: 66%;
+        width: min(28%, 240px);
+      }
+
+      .status {
+        justify-items: start;
+        text-align: left;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .app {
+        padding: 8px 0;
+      }
+
+      .stage-panel,
+      .sidebar {
+        padding: 12px;
+      }
+
+      .stage-panel {
+        min-height: 62vh;
+      }
+
+      .quote-text {
+        left: 50%;
+        top: 43%;
+        width: min(68%, 420px);
+        text-align: center;
+      }
+
+      .quote-author {
+        left: 50%;
+        top: 65%;
+        width: min(44%, 240px);
+      }
+
+      .controls {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .controls-group {
+        width: 100%;
+      }
+
+      .button {
+        flex: 1;
+      }
+
+      .meta-grid,
+      .thumb-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+
+
+    <section class="workspace">
+      <div class="panel stage-panel">
+        <div class="stage" id="stage">
+          <div class="artwork" aria-hidden="true"></div>
+          <label class="visually-hidden" for="quote-text">Quote</label>
+          <textarea id="quote-text" class="overlay-text quote-text" spellcheck="false" placeholder="Write the quote here">I can be changed by what happens to me.</textarea>
+          <label class="visually-hidden" for="quote-author">Quote author</label>
+          <textarea id="quote-author" class="overlay-text quote-author" spellcheck="false" placeholder="- Author">- Maya Angelou</textarea>
+          <img class="frame-image" id="frame-image" alt="">
+        </div>
+
+        <div class="controls">
+          <div class="controls-group">
+            <button class="button" id="prev-button" type="button">Previous</button>
+            <button class="button" id="next-button" type="button">Next</button>
+          </div>
+
+          <div class="status">
+            <strong id="frame-name"></strong>
+            <span id="frame-counter"></span>
+          </div>
+        </div>
+      </div>
+
+      <aside class="panel sidebar">
+        <div>
+          <h2>Frame Library</h2>
+          <p>The frame rotates every 5 seconds. Both text areas stay above the art layer and under the PNG frame overlay.</p>
+        </div>
+
+        <div class="meta-card">
+          <div class="meta-grid">
+            <div>
+              <span>Dimensions</span>
+              <strong id="frame-dimensions"></strong>
+            </div>
+            <div>
+              <span>Center Alpha</span>
+              <strong id="frame-alpha"></strong>
+            </div>
+          </div>
+          <p id="frame-path"></p>
+        </div>
+
+        <div class="thumb-grid" id="thumb-grid"></div>
+      </aside>
+    </section>
+  </main>
+  <script src="./index.js"></script>
+</body>
+</html>

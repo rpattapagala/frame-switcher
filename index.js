@@ -132,23 +132,41 @@ function updateOverlayField(element, options) {
   element.style.transform = "translate(-50%, -50%)";
 }
 
-function positionQuoteFields() {
-  updateOverlayField(quoteText, {
-    text: quoteText.value || "Write the quote here",
-    x: "38%",
-    y: "48%",
-    size: quoteText.style.fontSize || "44px",
-    color: quoteText.style.color || "#1f1a16"
-  });
+const fs = require("fs");
 
-  updateOverlayField(quoteAuthor, {
-    text: quoteAuthor.value || "- Author",
-    x: "70%",
-    y: "67%",
-    size: quoteAuthor.style.fontSize || "20px",
-    color: quoteAuthor.style.color || "#4c4037"
-  });
+function readLastLine(filePath) {
+  const fd = fs.openSync(filePath, "r");
+  const stats = fs.fstatSync(fd);
+
+  if (stats.size === 0) {
+    fs.closeSync(fd);
+    return "";
+  }
+
+  let position = stats.size - 1;
+  let line = "";
+  const buffer = Buffer.alloc(1);
+
+  while (position >= 0) {
+    fs.readSync(fd, buffer, 0, 1, position);
+    const char = buffer.toString();
+
+    if (char === "\n" && line.length > 0) {
+      break;
+    }
+
+    if (char !== "\n" && char !== "\r") {
+      line = char + line;
+    }
+
+    position--;
+  }
+
+  fs.closeSync(fd);
+  return line;
 }
+
+const LOG_FILE = "discord-bot/voice_chat_log.txt";
 
 function updateFrame(index) {
   state.index = mod(index, frames.length);
@@ -158,15 +176,32 @@ function updateFrame(index) {
   stage.style.aspectRatio = `${frame.width} / ${frame.height}`;
   frameImage.src = frame.path;
   frameImage.alt = frame.name;
-  frameName.textContent = frame.name;
+
+  refreshLastLogLine();
+
   frameCounter.textContent = `${state.index + 1} of ${frames.length}`;
   frameDimensions.textContent = `${frame.width} x ${frame.height}`;
   frameAlpha.textContent = String(frame.centerAlpha);
   framePath.textContent = frame.path;
 
   updateThumbState();
+}
+
+function refreshLastLogLine() {
+  const lastLine = readLastLine(LOG_FILE) || "No log lines yet";
+  quoteText.value = lastLine;
   positionQuoteFields();
 }
+
+setInterval(() => {
+  updateFrame(state.index + 1);
+}, 5000);
+
+setInterval(() => {
+  refreshLastLogLine();
+}, 2000);
+
+setInterval(refreshLastLogLine, 2000);
 
 prevButton.addEventListener("click", () => {
   updateFrame(state.index - 1);
